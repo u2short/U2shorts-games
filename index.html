@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U2short's Games</title>
+<meta name="description" content="U2short's Games — a growing collection of free browser games.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="grid-overlay"></div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-bracket">&lt;</span>U2short's<span class="logo-accent">Games</span><span class="logo-bracket">/&gt;</span>
+    </a>
+    <nav class="nav">
+      <a href="index.html">Home</a>
+      <a href="index.html#games">Games</a>
+      <a href="index.html#about">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container hero-inner">
+      <h1 class="glitch-text">PLAY. BUILD. REPEAT.</h1>
+      <p class="hero-sub">Free browser games, made from scratch and always growing. No downloads, no accounts — just click and play.</p>
+      <a href="#games" class="btn btn-primary">Browse Games</a>
+    </div>
+  </section>
+
+  <section id="games" class="games-section">
+    <div class="container">
+      <h2 class="section-title"><span class="title-accent">//</span> GAME LIBRARY</h2>
+      <div id="games-grid" class="games-grid">
+        <!-- Cards are injected by js/main.js from js/games-data.js -->
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="about-section">
+    <div class="container about-inner">
+      <h2 class="section-title"><span class="title-accent">//</span> ABOUT</h2>
+      <p>U2short's Games is a solo indie project — every game here is built from scratch with HTML, CSS, and JavaScript. New games get added as they're finished, so check back often.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; <span id="year"></span> U2short's Games. Built with HTML, CSS &amp; JS.</p>
+  </div>
+</footer>
+
+<script src="js/games-data.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
