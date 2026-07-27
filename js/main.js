@@ -5,11 +5,11 @@ function renderGames() {
   grid.innerHTML = "";
 
   GAMES.forEach((game) => {
-    const isPlayable = !game.comingSoon && game.path;
+    const isPlayable = !game.comingSoon && game.path && game.slug;
     const el = document.createElement(isPlayable ? "a" : "div");
 
     el.className = "game-card" + (isPlayable ? "" : " disabled");
-    if (isPlayable) el.href = game.path;
+    if (isPlayable) el.href = `games/play.html?slug=${encodeURIComponent(game.slug)}`;
 
     const thumbContent = game.thumbnail
       ? `<img src="${game.thumbnail}" alt="${game.title} thumbnail">`

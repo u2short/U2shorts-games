@@ -5,13 +5,19 @@ Personal site for hosting browser games, built as plain HTML/CSS/JS (no build st
 ## Structure
 
 ```
-index.html          Homepage (hero + game grid)
-css/style.css        Theme (black + neon green)
-js/games-data.js      <-- Edit this to add/remove games
-js/main.js            Renders the game grid from games-data.js
-games/                Put each game's folder in here
-assets/               Site images/icons
+index.html           Homepage (hero + game grid)
+css/style.css         Theme (black + neon green)
+js/games-data.js       <-- Edit this to add/remove games
+js/main.js             Renders the homepage grid from games-data.js
+js/play.js             Renders each game's own info page
+games/play.html         Shared template: embeds the game + How to Play + Changelog
+games/<slug>/            Put each game's folder in here
+assets/                 Site images/icons
 ```
+
+Every game gets its own page at `games/play.html?slug=<slug>`, which embeds
+the game in an iframe next to a "How to Play" panel (objective + controls)
+and a changelog. The homepage card links straight to that page.
 
 ## Adding a new game
 
@@ -21,15 +27,31 @@ assets/               Site images/icons
 ```js
 {
   title: "Space Runner",
+  slug: "space-runner",
   description: "Dodge asteroids and rack up your best score.",
   path: "games/space-runner/index.html",
   thumbnail: "games/space-runner/thumb.png", // optional, leave "" if you don't have one
   tag: "NEW",                                 // optional, leave "" for none
-  comingSoon: false
+  comingSoon: false,
+  objective: "Dodge incoming asteroids and survive as long as possible.",
+  controls: [
+    { key: "Arrow Keys / WASD", action: "Move" },
+    { key: "Space", action: "Boost" }
+  ],
+  changelog: [
+    { date: "2026-07-27", note: "Initial release." }
+    // add a new entry (newest first) every time you update this game
+  ]
 }
 ```
 
 3. Save, then push to GitHub (see below) — the site updates automatically within a minute or two.
+
+There's also a personal Claude Code skill, `publish-game` (installed at
+`~/.claude/skills/publish-game/`), that automates all of this — including
+writing the objective/controls by reading your game's code and appending a
+changelog entry — from inside whatever game project you're working on. Just
+ask Claude to "publish this game" from that project.
 
 ## Local preview
 
