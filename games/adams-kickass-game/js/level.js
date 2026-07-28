@@ -4,13 +4,18 @@
 
 const platforms = [
   { x: 0, y: 860, width: 1600, height: 40 }, // ground, spans the whole screen
-  // Floating platforms clustered on the left, all same (lower) height --
-  // leaves the whole right side of the screen open for a stationary boss.
+  // Floating platforms, all same (lower) height, spaced evenly across the
+  // WHOLE screen -- the boss now leaps between the left/middle/right zones
+  // and stays wherever it lands (see attack 3 in boss.js), so every zone
+  // needs its own platforms, not just the left cluster.
   // "oneWay" platforms can be jumped up through from below and dropped
   // through from above (see player.js) -- only the ground is fully solid.
   { x: 100, y: 730, width: 160, height: 20, oneWay: true },
   { x: 350, y: 730, width: 160, height: 20, oneWay: true },
   { x: 600, y: 730, width: 160, height: 20, oneWay: true },
+  { x: 850, y: 730, width: 160, height: 20, oneWay: true },
+  { x: 1100, y: 730, width: 160, height: 20, oneWay: true },
+  { x: 1350, y: 730, width: 160, height: 20, oneWay: true },
 ];
 
 function drawLevel() {

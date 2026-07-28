@@ -39,6 +39,7 @@ const GAMES = [
       { key: "E", action: "Magic bullet (costs 1 MP, small damage)" }
     ],
     changelog: [
+      { date: "2026-07-27", note: "Leap-slam platforms now span the whole level (not just the left side), and the boss stays wherever it lands instead of leaping back home -- it now overlaps and hides whatever platform is beneath it until it leaps away again." },
       { date: "2026-07-27", note: "Initial release." }
     ]
   }
