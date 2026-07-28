@@ -22,9 +22,17 @@ const platforms = [
 ];
 
 function drawLevel() {
-  ctx.fillStyle = "#6b6b8a";
   for (const platform of platforms) {
-    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+    const gradient = ctx.createLinearGradient(platform.x, platform.y, platform.x, platform.y + platform.height);
+    gradient.addColorStop(0, "#82829f");
+    gradient.addColorStop(1, "#5a5a76");
+
+    const radius = platform.height >= 30 ? 6 : 4;
+    fillRoundedRect(platform.x, platform.y, platform.width, platform.height, radius, gradient);
+
+    // A thin bright highlight along the top edge sells the "solid surface" look.
+    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+    ctx.fillRect(platform.x + radius, platform.y, Math.max(0, platform.width - radius * 2), 2);
   }
 }
 

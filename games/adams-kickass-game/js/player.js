@@ -73,8 +73,9 @@ function updatePlayer() {
   // Holding down while standing on a one-way platform starts dropping
   // through it. Checked against last frame's ground state, before this
   // frame's collision pass overwrites it.
-  if (player.onGround && player.groundIsOneWay && isAnyPressed(DOWN_KEYS)) {
+  if (player.onGround && player.groundIsOneWay && player.dropThroughTimer === 0 && isAnyPressed(DOWN_KEYS)) {
     player.dropThroughTimer = DROP_THROUGH_DURATION;
+    sfxDropThrough();
   }
 
   if (player.onGround) {
@@ -97,6 +98,7 @@ function updatePlayer() {
     player.dashTimer = DASH_DURATION;
     player.dashCooldownTimer = DASH_COOLDOWN;
     player.dashDir = player.facing;
+    sfxDash();
   }
 
   if (player.isDashing) {
@@ -131,6 +133,11 @@ function updatePlayer() {
       player.jumpBufferTimer = 0;
       player.coyoteTimer = 0;
       player.onGround = false;
+      sfxJump();
+      spawnParticles(player.x + player.width / 2, player.y + player.height, 6, {
+        speedMin: 0.5, speedMax: 2.5, angleStart: Math.PI * 1.1, angleEnd: Math.PI * 1.9,
+        life: 18, size: 4, color: "#9ca3af", gravity: 0.15,
+      });
     }
 
     // --- Gravity ---
@@ -141,6 +148,8 @@ function updatePlayer() {
   // to tell "falling onto it from above" apart from "rising into it from
   // below," which the generic AABB overlap check alone can't distinguish.
   const prevBottom = player.y + player.height;
+  const wasOnGround = player.onGround;
+  const fallSpeed = player.velocityY;
 
   // --- Apply movement ---
   player.x += player.velocityX;
@@ -164,6 +173,22 @@ function updatePlayer() {
     }
   }
 
+  // Landing dust/thud -- only for a real fall, not just stepping off a 1px ledge.
+  if (!wasOnGround && player.onGround && fallSpeed > 6) {
+    sfxLand();
+    spawnParticles(player.x + player.width / 2, player.y + player.height, 8, {
+      speedMin: 0.5, speedMax: 3, angleStart: Math.PI * 1.1, angleEnd: Math.PI * 1.9,
+      life: 16, size: 5, color: "#9ca3af", gravity: 0.1,
+    });
+  }
+
+  // A light trail while dashing, so the burst of speed reads clearly.
+  if (player.isDashing && frameCount % 2 === 0) {
+    spawnParticles(player.x + player.width / 2, player.y + player.height / 2, 2, {
+      speedMin: 0, speedMax: 0.5, life: 14, size: player.height * 0.4, color: "#7dd3fc",
+    });
+  }
+
   // --- Keep player inside the canvas horizontally ---
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
@@ -178,13 +203,60 @@ function updatePlayer() {
 }
 
 function drawPlayer() {
+  // Soft contact shadow at the feet, always -- reads fine in the air too.
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = "#000000";
+  ctx.beginPath();
+  ctx.ellipse(player.x + player.width / 2, player.y + player.height + 2, player.width * 0.45, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
   // Blink on/off for the whole invulnerability window after taking a hit.
   if (player.invulnerableTimer > 0 && Math.floor(player.invulnerableTimer / HIT_FLASH_INTERVAL) % 2 === 0) {
     return;
   }
 
-  ctx.fillStyle = player.isDashing ? "#7dd3fc" : "#4ade80";
-  ctx.fillRect(player.x, player.y, player.width, player.height);
+  const baseColor = player.isDashing ? "#7dd3fc" : "#4ade80";
+  const shadeColor = player.isDashing ? "#38bdf8" : "#22c55e";
+  const gradient = ctx.createLinearGradient(player.x, player.y, player.x, player.y + player.height);
+  gradient.addColorStop(0, baseColor);
+  gradient.addColorStop(1, shadeColor);
+
+  // Same gumdrop silhouette as the boss (see setup.js) -- no wobble/drips,
+  // just the clean shape, so the player reads as a small, tidy version of
+  // the same "species" rather than a generic rounded rectangle.
+  buildGumdropPath(player.x, player.y, player.width, player.height, 0, 0);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // A small glossy highlight, same trick as the boss, for a bit of shine.
+  ctx.save();
+  buildGumdropPath(player.x, player.y, player.width, player.height, 0, 0);
+  ctx.clip();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.ellipse(player.x + player.width * 0.36, player.y + player.height * 0.3, player.width * 0.16, player.height * 0.22, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Simple eyes, offset toward whichever way the player is facing.
+  const eyeY = player.y + player.height * 0.36;
+  const eyeOffsetX = player.facing === 1 ? player.width * 0.62 : player.width * 0.38;
+  const eyeSpacing = player.width * 0.16;
+  const eyeRadius = player.width * 0.09;
+
+  for (const dir of [-1, 1]) {
+    const ex = player.x + eyeOffsetX + dir * eyeSpacing;
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(ex, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(ex + player.facing * eyeRadius * 0.3, eyeY - eyeRadius * 0.3, eyeRadius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // Reduces the player's hearts by one (ignored while invulnerable, or while
@@ -193,4 +265,15 @@ function damagePlayer(amount = 1) {
   if (player.invulnerableTimer > 0 || player.isDashing) return;
   player.hearts = Math.max(0, player.hearts - amount);
   player.invulnerableTimer = HIT_INVULNERABILITY;
+
+  triggerScreenShake(8, 12);
+  spawnParticles(player.x + player.width / 2, player.y + player.height / 2, 10, {
+    speedMin: 1.5, speedMax: 5, life: 20, size: 5, color: "#ef4444",
+  });
+
+  if (player.hearts === 0) {
+    sfxGameOver();
+  } else {
+    sfxPlayerHurt();
+  }
 }

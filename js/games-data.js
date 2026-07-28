@@ -36,9 +36,11 @@ const GAMES = [
       { key: "S / Down (on a platform)", action: "Drop through it" },
       { key: "Left Click", action: "Slash attack" },
       { key: "Right Click", action: "Magic cube (costs 50 MP, big damage)" },
-      { key: "E", action: "Magic bullet (costs 1 MP, small damage)" }
+      { key: "E", action: "Magic bullet (costs 1 MP, small damage)" },
+      { key: "Touch (mobile)", action: "On-screen buttons for movement, jump, dash, slash, bullet, cube, drop-through" }
     ],
     changelog: [
+      { date: "2026-07-27", note: "Major polish pass: sound, visuals, mobile support, and a full boss/player redesign." },
       { date: "2026-07-27", note: "Added platforms in the boss arena; boss now stays where it lands after its leap attack." },
       { date: "2026-07-27", note: "Initial release." }
     ]

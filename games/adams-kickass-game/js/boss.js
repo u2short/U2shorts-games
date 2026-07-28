@@ -121,6 +121,9 @@ function updateEnemies() {
         size: 6 + Math.random() * 10,
       });
     }
+
+    sfxExplosion();
+    triggerScreenShake(24, 40);
     return;
   }
 
@@ -133,6 +136,7 @@ function updateEnemies() {
     }
     if (boss.stateTimer <= 0) {
       boss.state = "dead";
+      sfxWin();
     }
     return;
   }
@@ -140,6 +144,14 @@ function updateEnemies() {
   if (boss.state === "dead") return;
 
   if (boss.hitFlashTimer > 0) boss.hitFlashTimer--;
+
+  // Ambient ooze -- an occasional drip off the bottom edge, purely for
+  // atmosphere. Random interval so it doesn't look mechanically regular.
+  if (Math.random() < 0.02) {
+    spawnParticles(boss.x + Math.random() * boss.width, boss.y + boss.height - 10, 1, {
+      speedMin: 0.2, speedMax: 0.6, life: 40, size: 5, color: "#7e22ce", gravity: 0.12,
+    });
+  }
 
   // Touching the boss's body directly always hurts, regardless of what
   // attack state it's in.
@@ -159,6 +171,7 @@ function updateEnemies() {
       } else if (boss.attackChoice === 3) {
         boss.attack3Zone = ATTACK3_ZONES[Math.floor(Math.random() * ATTACK3_ZONES.length)];
       }
+      sfxBossTelegraph();
     }
   } else if (boss.state === "telegraph") {
     boss.stateTimer--;
@@ -166,11 +179,13 @@ function updateEnemies() {
     if (boss.stateTimer <= 0) {
       if (boss.attackChoice === 1) {
         fireAttack1();
+        sfxBossFireBullets();
         boss.state = "cooldown";
         boss.stateTimer = ATTACK_COOLDOWN;
       } else if (boss.attackChoice === 2) {
         boss.state = "attack2_active";
         boss.stateTimer = LIMB_ATTACK_DURATION;
+        sfxBossLimb();
       } else {
         // Rises straight up from wherever it currently is -- it may not be
         // home if a previous Attack 3 already relocated it.
@@ -206,6 +221,12 @@ function updateEnemies() {
       if (player.x + player.width > zone.x && player.x < zone.x + zone.width) {
         damagePlayer(ATTACK3_DAMAGE);
       }
+      sfxBossSlamImpact();
+      triggerScreenShake(18, 20);
+      spawnParticles(boss.x + boss.width / 2, boss.y + boss.height, 20, {
+        speedMin: 3, speedMax: 9, angleStart: Math.PI * 1.05, angleEnd: Math.PI * 1.95,
+        life: 24, size: 7, color: "#a78bfa", gravity: 0.2,
+      });
       boss.state = "attack3_hold";
       boss.stateTimer = ATTACK3_HOLD_DURATION;
     }
@@ -344,12 +365,82 @@ function updateBullets() {
   }
 }
 
+// Boss body: a gumdrop silhouette (shared with the player, see setup.js),
+// gooey wobble and dripping base turned on since this one's a slime.
+function drawSlimeBody(x, y, width, height, colorTop, colorBottom) {
+  buildGumdropPath(x, y, width, height, 1, 6);
+  const gradient = ctx.createLinearGradient(x, y, x, y + height);
+  gradient.addColorStop(0, colorTop);
+  gradient.addColorStop(1, colorBottom);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Glossy highlight -- clipped to the blob so it reads as light on wet
+  // goo, not a sticker floating on top.
+  ctx.save();
+  buildGumdropPath(x, y, width, height, 1, 6);
+  ctx.clip();
+  ctx.globalAlpha = 0.14;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.ellipse(x + width * 0.34, y + height * 0.28, width * 0.15, height * 0.3, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pulsing glowing cracks through the body -- an inner threat, not just a
+  // solid shape.
+  ctx.globalAlpha = 0.35 + Math.sin(frameCount * 0.08) * 0.15;
+  ctx.strokeStyle = "#c026d3";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.32, y + height * 0.4);
+  ctx.lineTo(x + width * 0.45, y + height * 0.6);
+  ctx.lineTo(x + width * 0.37, y + height * 0.8);
+  ctx.moveTo(x + width * 0.63, y + height * 0.35);
+  ctx.lineTo(x + width * 0.58, y + height * 0.58);
+  ctx.lineTo(x + width * 0.7, y + height * 0.76);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Angry, tilted slit eyes forming a "V" -- inner corners (toward the center)
+// pulled down, which reads as hostile rather than the round, friendly eyes
+// this used to have.
+function drawSlimeEyes(centerX, eyeY, spacing, size) {
+  for (const dir of [-1, 1]) {
+    const ex = centerX + dir * spacing;
+
+    ctx.save();
+    ctx.translate(ex, eyeY);
+    ctx.rotate(-dir * 0.3);
+    ctx.shadowColor = "#f43f5e";
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = "#fb7185";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, size, size * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(ex, eyeY);
+    ctx.rotate(-dir * 0.3);
+    ctx.fillStyle = "#450a0a";
+    ctx.beginPath();
+    ctx.arc(dir * size * 0.3, 0, size * 0.26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 function drawEnemies() {
   if (boss.state === "dead") return; // boss is gone -- draw() switches to the win screen
 
   if (boss.state === "exploding") {
+    ctx.save();
+    ctx.shadowColor = "#f97316";
+    ctx.shadowBlur = 30;
     ctx.fillStyle = boss.flashOn ? "#ffffff" : "#f97316";
     ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+    ctx.restore();
 
     ctx.fillStyle = "#f97316";
     for (const particle of explosionParticles) {
@@ -358,54 +449,127 @@ function drawEnemies() {
     return;
   }
 
-  let bodyColor = "#7c3aed";
-  if (boss.hitFlashTimer > 0) {
-    bodyColor = "#ffffff";
-  }
+  let bodyColor = "#3b0764";
+  let shadeColor = "#0c0a1a";
   if (boss.state === "telegraph" && boss.flashOn) {
     // Takes priority -- the attack warning must stay readable.
-    if (boss.attackChoice === 2) bodyColor = "#22c55e";
-    else if (boss.attackChoice === 3) bodyColor = "#ef4444";
-    else bodyColor = "#facc15";
+    if (boss.attackChoice === 2) { bodyColor = "#4ade80"; shadeColor = "#14532d"; }
+    else if (boss.attackChoice === 3) { bodyColor = "#f87171"; shadeColor = "#7f1d1d"; }
+    else { bodyColor = "#fde047"; shadeColor = "#854d0e"; }
   }
 
   // Attack 3's telegraph also squishes the boss down, anchored to the
   // ground, as anticipation for the leap -- grows more squished the closer
   // it gets to jumping.
-  let drawHeight = boss.height;
+  let drawX = boss.x;
   let drawY = boss.y;
+  let drawWidth = boss.width;
+  let drawHeight = boss.height;
   if (boss.state === "telegraph" && boss.attackChoice === 3) {
     const progress = 1 - boss.stateTimer / TELEGRAPH_DURATION;
     drawHeight = boss.height * (1 - ATTACK3_SQUISH_AMOUNT * progress);
     drawY = boss.y + (boss.height - drawHeight);
+  } else if (boss.state === "cooldown") {
+    // Slow gooey squash-and-stretch pulse instead of a rigid idle -- a slime
+    // breathing, not a block.
+    const pulse = Math.sin(frameCount * 0.05) * 0.025;
+    drawHeight = boss.height * (1 + pulse);
+    drawWidth = boss.width * (1 - pulse * 0.5);
+    drawY = boss.y + (boss.height - drawHeight);
+    drawX = boss.x + (boss.width - drawWidth) / 2;
   }
 
-  ctx.fillStyle = bodyColor;
-  ctx.fillRect(boss.x, drawY, boss.width, drawHeight);
+  drawSlimeBody(drawX, drawY, drawWidth, drawHeight, bodyColor, shadeColor);
 
-  // Grey socket marking where the limb emerges from -- visible during its
-  // telegraph (so you can see it coming) and while the limb is out.
+  // Hit-flash washes a translucent white overlay across the body -- kept
+  // separate from bodyColor so it never fights the telegraph color for
+  // priority (telegraph must always stay readable).
+  if (boss.hitFlashTimer > 0) {
+    ctx.globalAlpha = boss.hitFlashTimer / HIT_FLASH_DURATION;
+    ctx.fillStyle = "#ffffff";
+    buildGumdropPath(drawX, drawY, drawWidth, drawHeight, 1, 6);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Angry slit eyes, tilted into a "V" -- sit in the wider "shoulder" band
+  // of the gumdrop, not the narrow dome tip. The one bit of face this
+  // ominous mass gets, and it should read as hostile, not friendly.
+  const eyeY = drawY + drawHeight * 0.32;
+  const eyeSpacing = drawWidth * 0.15;
+  const eyeSize = drawWidth * 0.07;
+  drawSlimeEyes(drawX + drawWidth / 2, eyeY, eyeSpacing, eyeSize);
+
+  // Socket marking where the limb emerges from -- visible during its
+  // telegraph (so you can see it coming) and while the limb is out. Tinted
+  // to match the goo instead of a flat mechanical grey.
   if (boss.attackChoice === 2 && (boss.state === "telegraph" || boss.state === "attack2_active")) {
-    ctx.fillStyle = "#6b7280";
-    ctx.fillRect(boss.x - LIMB_SOCKET_WIDTH, getLimbOriginY(), LIMB_SOCKET_WIDTH, LIMB_HEIGHT);
+    const socketGradient = ctx.createLinearGradient(boss.x - LIMB_SOCKET_WIDTH, 0, boss.x, 0);
+    socketGradient.addColorStop(0, "#4c1d95");
+    socketGradient.addColorStop(1, "#7e22ce");
+    fillRoundedRect(boss.x - LIMB_SOCKET_WIDTH, getLimbOriginY(), LIMB_SOCKET_WIDTH, LIMB_HEIGHT, 10, socketGradient);
   }
 
   // Attack 3's landing-zone warning -- full screen height, half the width.
-  // Semi-transparent on purpose: it's a warning, not an active hazard.
+  // Semi-transparent and slowly pulsing, toxic purple to match the slime
+  // rather than a generic red danger overlay.
   if (boss.state === "attack3_warning" || boss.state === "attack3_slam") {
-    ctx.fillStyle = "rgba(239, 68, 68, 0.35)";
+    const pulse = 0.28 + Math.sin(frameCount * 0.2) * 0.08;
+    ctx.fillStyle = `rgba(192, 38, 211, ${pulse})`;
     ctx.fillRect(boss.attack3Zone.x, 0, boss.attack3Zone.width, canvas.height);
   }
 
-  ctx.fillStyle = "#ef4444";
+  // Bullets: tiny gumdrop droplets, same species as the boss, glowing goo-purple.
+  ctx.save();
+  ctx.shadowColor = "#c026d3";
+  ctx.shadowBlur = 12;
   for (const bullet of bullets) {
-    ctx.beginPath();
-    ctx.arc(bullet.x + bullet.width / 2, bullet.y + bullet.height / 2, bullet.width / 2, 0, Math.PI * 2);
+    const dropletGradient = ctx.createLinearGradient(bullet.x, bullet.y, bullet.x, bullet.y + bullet.height);
+    dropletGradient.addColorStop(0, "#f0abfc");
+    dropletGradient.addColorStop(1, "#86198f");
+    buildGumdropPath(bullet.x, bullet.y, bullet.width, bullet.height, 0, 0);
+    ctx.fillStyle = dropletGradient;
     ctx.fill();
   }
+  ctx.restore();
 
   if (limbHazard && limbHazard.width > 0) {
-    ctx.fillStyle = "#ef4444";
-    ctx.fillRect(limbHazard.x, limbHazard.y, limbHazard.width, limbHazard.height);
+    drawGooTendril(limbHazard.x, limbHazard.y, limbHazard.width, limbHazard.height);
   }
+}
+
+// A wavy-edged tendril of goo, same palette as the boss body, used for
+// Attack 2's limb -- reads as an extension of the slime rather than a
+// generic red bar.
+function drawGooTendril(x, y, width, height) {
+  const segments = 10;
+  const waveAmp = height * 0.06;
+  const t = frameCount * 0.15;
+
+  ctx.beginPath();
+  for (let i = 0; i <= segments; i++) {
+    const px = x + (width / segments) * i;
+    const wave = Math.sin(t + i * 0.8) * waveAmp;
+    if (i === 0) ctx.moveTo(px, y + wave);
+    else ctx.lineTo(px, y + wave);
+  }
+  ctx.quadraticCurveTo(x + width + height * 0.08, y + height / 2, x + width, y + height + Math.sin(t + segments * 0.8 + 1.5) * waveAmp);
+  for (let i = segments; i >= 0; i--) {
+    const px = x + (width / segments) * i;
+    const wave = Math.sin(t + i * 0.8 + 1.5) * waveAmp;
+    ctx.lineTo(px, y + height + wave);
+  }
+  ctx.closePath();
+
+  const gradient = ctx.createLinearGradient(x, y, x, y + height);
+  gradient.addColorStop(0, "#e879f9");
+  gradient.addColorStop(0.5, "#a21caf");
+  gradient.addColorStop(1, "#e879f9");
+
+  ctx.save();
+  ctx.shadowColor = "#c026d3";
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = gradient;
+  ctx.fill();
+  ctx.restore();
 }

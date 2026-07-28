@@ -1,20 +1,69 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: #1b1b22;
+  background: #0f0f1a;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  font-family: sans-serif;
 }
 
 canvas {
-  background: #2c2c3a;
+  background: #0f0f1a;
   image-rendering: pixelated;
-  border: 2px solid #555;
+  border: 2px solid #333;
+  border-radius: 4px;
   /* Canvas resolution stays 1600x900; this just scales it to fit the window
      since we don't use mouse coordinates, scaling on screen is harmless. */
   max-width: 95vw;
-  max-height: 90vh;
+  max-height: 95vh;
   width: auto;
   height: auto;
+  /* Touch controls need to receive taps/drags without the browser trying to
+     scroll or zoom the page. */
+  touch-action: none;
+}
+
+#rotate-prompt {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #0f0f1a;
+  color: #f8fafc;
+  text-align: center;
+  padding: 0 24px;
+}
+
+#rotate-prompt .rotate-icon {
+  font-size: 56px;
+  animation: rotate-hint 1.6s ease-in-out infinite;
+}
+
+#rotate-prompt p {
+  font-size: 18px;
+  color: #cbd5e1;
+  max-width: 320px;
+  margin: 0;
+}
+
+@keyframes rotate-hint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+/* Only mobile devices in portrait get the rotate prompt -- desktop windows
+   resized narrow/tall should never be blocked from playing. */
+@media (orientation: portrait) {
+  body.mobile canvas {
+    display: none;
+  }
+  body.mobile #rotate-prompt {
+    display: flex;
+  }
 }
