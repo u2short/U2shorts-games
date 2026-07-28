@@ -21,15 +21,25 @@
 
 const GAMES = [
   {
-    title: "Your Next Game",
-    slug: "",
-    description: "Working on a new HTML/JS game in another chat — drop it into the games/ folder and add its entry here when it's ready.",
-    path: "",
+    title: "Adams kickass game",
+    slug: "adams-kickass-game",
+    description: "A Cuphead-like boss fight.",
+    path: "games/adams-kickass-game/index.html",
     thumbnail: "",
-    tag: "COMING SOON",
-    comingSoon: true,
-    objective: "",
-    controls: [],
-    changelog: []
+    tag: "NEW/BETA",
+    comingSoon: false,
+    objective: "Defeat the boss by draining its HP to zero using melee slashes and magic attacks, while dodging its three attacks (a bullet spray, an extending limb strike, and a leap-slam) and managing your 4 hearts. Run out of hearts and it's Game Over; beat the boss and you win — either screen lets you hit Restart to fight again.",
+    controls: [
+      { key: "Arrow Keys / WASD", action: "Move" },
+      { key: "Space / Up / W", action: "Jump" },
+      { key: "Shift / C", action: "Dash (brief invincibility)" },
+      { key: "S / Down (on a platform)", action: "Drop through it" },
+      { key: "Left Click", action: "Slash attack" },
+      { key: "Right Click", action: "Magic cube (costs 50 MP, big damage)" },
+      { key: "E", action: "Magic bullet (costs 1 MP, small damage)" }
+    ],
+    changelog: [
+      { date: "2026-07-27", note: "Initial release." }
+    ]
   }
 ];

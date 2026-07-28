@@ -42,7 +42,7 @@ function renderGame(container, game) {
     <div class="play-layout">
       <div class="game-frame-wrap">
         <button class="fullscreen-btn" id="fullscreen-btn" title="Fullscreen">&#x26F6;</button>
-        <iframe id="game-frame" src="${encodeURI(game.path)}" allow="fullscreen" allowfullscreen></iframe>
+        <iframe id="game-frame" src="${encodeURI("../" + game.path)}" allow="fullscreen" allowfullscreen></iframe>
       </div>
 
       <aside class="play-sidebar">

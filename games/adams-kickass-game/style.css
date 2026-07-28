@@ -1,0 +1,20 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #1b1b22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  background: #2c2c3a;
+  image-rendering: pixelated;
+  border: 2px solid #555;
+  /* Canvas resolution stays 1600x900; this just scales it to fit the window
+     since we don't use mouse coordinates, scaling on screen is harmless. */
+  max-width: 95vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+}
