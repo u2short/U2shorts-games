@@ -71,9 +71,85 @@ function renderGame(container, game) {
   `;
 
   const fullscreenBtn = document.getElementById("fullscreen-btn");
-  const frame = document.getElementById("game-frame");
-  fullscreenBtn.addEventListener("click", () => {
-    if (frame.requestFullscreen) frame.requestFullscreen();
+  const wrap = container.querySelector(".game-frame-wrap");
+  setupFullscreen(wrap, fullscreenBtn);
+}
+
+// --- Fullscreen, with a fallback for browsers that don't support the real
+// API on arbitrary elements (notably iPhone Safari, which only supports it
+// on <video>). Targets the wrapper div (not the iframe) since fullscreening
+// an iframe element is flakier across browsers than a plain div.
+
+function requestFsCompat(el) {
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if (!fn) return Promise.reject(new Error("Fullscreen API not supported"));
+  try {
+    const result = fn.call(el);
+    return result instanceof Promise ? result : Promise.resolve();
+  } catch (err) {
+    return Promise.reject(err);
+  }
+}
+
+function exitFsCompat() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+  if (!fn) return Promise.resolve();
+  try {
+    const result = fn.call(document);
+    return result instanceof Promise ? result : Promise.resolve();
+  } catch {
+    return Promise.resolve();
+  }
+}
+
+function currentFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+}
+
+function setupFullscreen(wrap, btn) {
+  const EXIT_ICON = "✕"; // ✕
+  const ENTER_ICON = "⛶"; // ⛶
+
+  function enterPseudo() {
+    wrap.classList.add("pseudo-fullscreen");
+    document.body.classList.add("fullscreen-lock");
+    btn.textContent = EXIT_ICON;
+    btn.title = "Exit fullscreen";
+  }
+
+  function exitPseudo() {
+    wrap.classList.remove("pseudo-fullscreen");
+    document.body.classList.remove("fullscreen-lock");
+    btn.textContent = ENTER_ICON;
+    btn.title = "Fullscreen";
+  }
+
+  btn.addEventListener("click", () => {
+    if (currentFullscreenElement() === wrap) {
+      exitFsCompat();
+      return;
+    }
+    if (wrap.classList.contains("pseudo-fullscreen")) {
+      exitPseudo();
+      return;
+    }
+    // Try the real Fullscreen API first (hides browser chrome too); if the
+    // browser doesn't support it or refuses, fall back to a CSS overlay that
+    // just fills the viewport instead -- this is what makes it work on
+    // iPhone Safari, which has no Fullscreen API for non-video elements.
+    requestFsCompat(wrap).catch(() => enterPseudo());
+  });
+
+  ["fullscreenchange", "webkitfullscreenchange", "MSFullscreenChange"].forEach((evt) => {
+    document.addEventListener(evt, () => {
+      if (currentFullscreenElement() === wrap) {
+        btn.textContent = EXIT_ICON;
+        btn.title = "Exit fullscreen";
+      } else if (!wrap.classList.contains("pseudo-fullscreen")) {
+        btn.textContent = ENTER_ICON;
+        btn.title = "Fullscreen";
+      }
+    });
   });
 }
 

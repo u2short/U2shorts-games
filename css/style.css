@@ -305,6 +305,41 @@ body {
   display: block;
 }
 
+/* True fullscreen (desktop/Android) and the pseudo-fullscreen fallback
+   (iPhone Safari has no Fullscreen API for non-video elements) both fill the
+   viewport and letterbox the game to its own aspect ratio inside it. */
+.game-frame-wrap:fullscreen,
+.game-frame-wrap:-webkit-full-screen,
+.game-frame-wrap.pseudo-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  border: 0;
+  border-radius: 0;
+}
+
+.game-frame-wrap.pseudo-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.game-frame-wrap:fullscreen iframe,
+.game-frame-wrap:-webkit-full-screen iframe,
+.game-frame-wrap.pseudo-fullscreen iframe {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+body.fullscreen-lock { overflow: hidden; }
+
 .fullscreen-btn {
   position: absolute;
   top: 10px;
