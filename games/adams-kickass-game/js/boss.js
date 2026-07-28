@@ -9,7 +9,9 @@
 //             of the screen, a red warning zone (half the screen wide)
 //             appears over the left/middle/right, and the boss slams down
 //             inside that zone -- the landing impact is what deals damage,
-//             not the zone itself. It then leaps back to its usual spot.
+//             not the zone itself. It stays there afterward rather than
+//             returning home, so its next leap starts from wherever it
+//             currently is.
 // More attacks can be added later; the random pick already scales to more
 // choices.
 
@@ -66,8 +68,8 @@ const boss = {
 
   // "cooldown" (waiting) | "telegraph" (flashing, about to attack) |
   // "attack2_active" (limb is out) | "attack3_rise" / "attack3_warning" /
-  // "attack3_slam" / "attack3_hold" / "attack3_return_rise" /
-  // "attack3_return_slam" (the leap-slam sequence) | "exploding" (dying) |
+  // "attack3_slam" / "attack3_hold" (the leap-slam sequence -- ends back in
+  // "cooldown" at wherever it landed, not back home) | "exploding" (dying) |
   // "dead" (gone -- triggers the win screen)
   state: "cooldown",
   stateTimer: ATTACK_COOLDOWN,
@@ -170,7 +172,9 @@ function updateEnemies() {
         boss.state = "attack2_active";
         boss.stateTimer = LIMB_ATTACK_DURATION;
       } else {
-        startBossTween(BOSS_HOME_X, ATTACK3_OFFSCREEN_Y, ATTACK3_RISE_DURATION);
+        // Rises straight up from wherever it currently is -- it may not be
+        // home if a previous Attack 3 already relocated it.
+        startBossTween(boss.x, ATTACK3_OFFSCREEN_Y, ATTACK3_RISE_DURATION);
         boss.state = "attack3_rise";
       }
     }
@@ -206,19 +210,10 @@ function updateEnemies() {
       boss.stateTimer = ATTACK3_HOLD_DURATION;
     }
   } else if (boss.state === "attack3_hold") {
+    // Stays right where it landed -- no return trip home. The next attack
+    // (of any kind) starts from this new position.
     boss.stateTimer--;
     if (boss.stateTimer <= 0) {
-      startBossTween(boss.x, ATTACK3_OFFSCREEN_Y, ATTACK3_RISE_DURATION);
-      boss.state = "attack3_return_rise";
-    }
-  } else if (boss.state === "attack3_return_rise") {
-    if (updateBossTween()) {
-      boss.x = BOSS_HOME_X; // reposition while still off-screen
-      startBossTween(BOSS_HOME_X, BOSS_HOME_Y, ATTACK3_SLAM_DURATION);
-      boss.state = "attack3_return_slam";
-    }
-  } else if (boss.state === "attack3_return_slam") {
-    if (updateBossTween()) {
       boss.state = "cooldown";
       boss.stateTimer = ATTACK_COOLDOWN;
     }

@@ -11,6 +11,14 @@ const platforms = [
   { x: 100, y: 730, width: 160, height: 20, oneWay: true },
   { x: 350, y: 730, width: 160, height: 20, oneWay: true },
   { x: 600, y: 730, width: 160, height: 20, oneWay: true },
+
+  // Mirrored set in the boss's home area (x:1000-1600). Drawn before the
+  // boss each frame, so its huge body naturally covers whichever of these
+  // sit under it -- they're only visible once the boss leaps somewhere else
+  // (see Attack 3 in boss.js, which no longer returns home after landing).
+  { x: 1000, y: 730, width: 160, height: 20, oneWay: true },
+  { x: 1220, y: 730, width: 160, height: 20, oneWay: true },
+  { x: 1440, y: 730, width: 160, height: 20, oneWay: true },
 ];
 
 function drawLevel() {

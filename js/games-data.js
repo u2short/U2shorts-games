@@ -39,6 +39,7 @@ const GAMES = [
       { key: "E", action: "Magic bullet (costs 1 MP, small damage)" }
     ],
     changelog: [
+      { date: "2026-07-27", note: "Added platforms in the boss arena; boss now stays where it lands after its leap attack." },
       { date: "2026-07-27", note: "Initial release." }
     ]
   }
