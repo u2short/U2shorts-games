@@ -7,7 +7,7 @@ const SLASH_DURATION = 10; // frames the slash hitbox stays active
 const SLASH_COOLDOWN = 20; // frames before another slash can start
 
 const MAGIC_DAMAGE = 50;
-const MAGIC_COST = 50;
+const MAGIC_COST = 40;
 const MAGIC_SPEED = 10;
 
 const MAGIC_BULLET_DAMAGE = 1;
@@ -47,7 +47,10 @@ function startSlash() {
 }
 
 function castMagic() {
-  if (player.mp < MAGIC_COST) return;
+  if (player.mp < MAGIC_COST) {
+    sfxMagicDenied();
+    return;
+  }
   player.mp -= MAGIC_COST;
 
   const width = player.width * 2;
@@ -60,15 +63,19 @@ function castMagic() {
     velocityX: MAGIC_SPEED * player.facing,
     hasHit: false,
     damage: MAGIC_DAMAGE,
-    color: "#3b82f6",
-    shape: "cube",
+    color: "#f97316",
+    shape: "fireball",
+    trailTimer: 0,
     grantsMp: false, // spending MP to make MP would be circular
   });
   sfxMagicCube();
 }
 
 function castMagicBullet() {
-  if (player.mp < MAGIC_BULLET_COST) return;
+  if (player.mp < MAGIC_BULLET_COST) {
+    sfxMagicDenied();
+    return;
+  }
   player.mp -= MAGIC_BULLET_COST;
 
   const width = MAGIC_BULLET_SIZE;
@@ -81,8 +88,9 @@ function castMagicBullet() {
     velocityX: MAGIC_BULLET_SPEED * player.facing,
     hasHit: false,
     damage: MAGIC_BULLET_DAMAGE,
-    color: "#22d3ee",
-    shape: "bullet",
+    color: "#fbbf24",
+    shape: "pellet",
+    trailTimer: 0,
     grantsMp: false, // the cheap E bullet doesn't feed back into MP, unlike slash/cube
   });
   sfxMagicBullet();
@@ -130,7 +138,7 @@ function updateCombat() {
     };
 
     for (const enemy of enemies) {
-      if (enemy.hp > 0 && !hitEnemiesThisSwing.has(enemy) && isColliding(slashHitbox, enemy)) {
+      if (enemy.hp > 0 && !hitEnemiesThisSwing.has(enemy) && isCollidingWithEnemy(slashHitbox, enemy)) {
         hitEnemiesThisSwing.add(enemy);
         damageEnemy(enemy, SLASH_DAMAGE, true, slashHitbox.x + slashHitbox.width / 2, slashHitbox.y + slashHitbox.height / 2);
       }
@@ -143,9 +151,21 @@ function updateCombat() {
     const p = projectiles[i];
     p.x += p.velocityX;
 
+    // Small trailing embers so the fireballs read as fire in motion, not
+    // just a static glowing shape.
+    p.trailTimer--;
+    if (p.trailTimer <= 0) {
+      const isBig = p.shape === "fireball";
+      spawnParticles(p.x + p.width / 2, p.y + p.height / 2, 1, {
+        speedMin: 0.2, speedMax: 1, life: 18,
+        size: isBig ? 5 : 3, color: isBig ? "#fb923c" : "#fde68a", gravity: -0.02,
+      });
+      p.trailTimer = isBig ? 3 : 5;
+    }
+
     if (!p.hasHit) {
       for (const enemy of enemies) {
-        if (enemy.hp > 0 && isColliding(p, enemy)) {
+        if (enemy.hp > 0 && isCollidingWithEnemy(p, enemy)) {
           p.hasHit = true;
           damageEnemy(enemy, p.damage, p.grantsMp !== false, p.x + p.width / 2, p.y + p.height / 2);
           break;
@@ -159,51 +179,83 @@ function updateCombat() {
   }
 }
 
+// A flickering flame blob -- wavy jagged edge instead of a perfect circle,
+// radial gradient from a hot pale core out to a darker rim. Shared by both
+// the big fireball (magic cube) and the small fire pellets (magic bullet),
+// which just use a smaller radius and a slightly cooler gradient.
+function drawFireball(cx, cy, radius, flickerSeed, variant) {
+  const spikes = 9;
+  const t = frameCount * 0.22 + flickerSeed;
+
+  ctx.beginPath();
+  for (let i = 0; i <= spikes; i++) {
+    const angle = (i / spikes) * Math.PI * 2;
+    const wobble = 0.16 * Math.sin(t + i * 1.9) + 0.08 * Math.sin(t * 1.6 + i * 2.3);
+    const r = radius * (1 + wobble);
+    const px = cx + Math.cos(angle) * r;
+    const py = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+
+  const gradient = ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius);
+  if (variant === "big") {
+    gradient.addColorStop(0, "#fff7ed");
+    gradient.addColorStop(0.35, "#fde047");
+    gradient.addColorStop(0.65, "#f97316");
+    gradient.addColorStop(1, "#7f1d1d");
+  } else {
+    gradient.addColorStop(0, "#fffbeb");
+    gradient.addColorStop(0.5, "#fbbf24");
+    gradient.addColorStop(1, "#ea580c");
+  }
+  ctx.fillStyle = gradient;
+  ctx.fill();
+}
+
 function drawCombat() {
   if (slashHitbox) {
-    // A few curved, fading swipe lines instead of a flat rectangle --
-    // reads as a slash rather than a hitbox debug overlay.
+    // A filled red crescent swept out in front of the player -- reads as an
+    // actual sword slash rather than a hitbox debug overlay.
     const progress = 1 - slashTimer / SLASH_DURATION; // 0 -> 1 across the swing
     const originX = player.facing === 1 ? slashHitbox.x : slashHitbox.x + slashHitbox.width;
     const originY = slashHitbox.y + slashHitbox.height / 2;
     const reach = slashHitbox.width;
 
     ctx.save();
-    ctx.globalAlpha = Math.max(0, 1 - progress);
-    ctx.strokeStyle = "#f8fafc";
-    ctx.lineWidth = 5;
-    ctx.lineCap = "round";
-    ctx.shadowColor = "#f8fafc";
-    ctx.shadowBlur = 8;
-    for (let i = -1; i <= 1; i++) {
-      const spread = i * slashHitbox.height * 0.28;
-      ctx.beginPath();
-      ctx.moveTo(originX, originY + spread * 0.4);
-      ctx.quadraticCurveTo(
-        originX + player.facing * reach * 0.5, originY + spread,
-        originX + player.facing * reach * progress, originY + spread * (1 - progress)
-      );
-      ctx.stroke();
-    }
+    ctx.translate(originX, originY);
+    if (player.facing === -1) ctx.scale(-1, 1); // local +x always points "forward" after this
+    ctx.globalAlpha = Math.max(0, 1 - progress * 0.85);
+
+    const sweepStart = -0.85 + progress * 0.4;
+    const sweepEnd = sweepStart + 1.05;
+    const outerR = reach * (0.55 + 0.5 * progress);
+    const innerR = outerR * 0.6;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, outerR, sweepStart, sweepEnd, false);
+    ctx.arc(0, 0, innerR, sweepEnd, sweepStart, true);
+    ctx.closePath();
+
+    const gradient = ctx.createRadialGradient(0, 0, innerR, 0, 0, outerR);
+    gradient.addColorStop(0, "#fecaca");
+    gradient.addColorStop(0.45, "#ef4444");
+    gradient.addColorStop(1, "#7f1d1d");
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = "#ef4444";
+    ctx.shadowBlur = 16;
+    ctx.fill();
     ctx.restore();
   }
 
   for (const p of projectiles) {
+    const isBig = p.shape === "fireball";
+    const pulse = 0.92 + Math.sin(frameCount * 0.3 + p.x * 0.05) * 0.08;
     ctx.save();
     ctx.shadowColor = p.color;
-    ctx.shadowBlur = p.shape === "cube" ? 25 : 12;
-    ctx.fillStyle = p.color;
-    if (p.shape === "cube") {
-      // A gentle pulse so the big attack reads as "charged energy," not a static block.
-      const pulse = 0.9 + Math.sin(frameCount * 0.3) * 0.1;
-      const w = p.width * pulse;
-      const h = p.height * pulse;
-      fillRoundedRect(p.x + (p.width - w) / 2, p.y + (p.height - h) / 2, w, h, 12, p.color);
-    } else {
-      ctx.beginPath();
-      ctx.arc(p.x + p.width / 2, p.y + p.height / 2, p.width / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.shadowBlur = isBig ? 26 : 12;
+    drawFireball(p.x + p.width / 2, p.y + p.height / 2, (p.width / 2) * pulse, isBig ? 0 : 3.7, isBig ? "big" : "small");
     ctx.restore();
   }
 }

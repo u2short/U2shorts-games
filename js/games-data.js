@@ -28,18 +28,19 @@ const GAMES = [
     thumbnail: "",
     tag: "NEW/BETA",
     comingSoon: false,
-    objective: "Defeat the boss by draining its HP to zero using melee slashes and magic attacks, while dodging its three attacks (a bullet spray, an extending limb strike, and a leap-slam) and managing your 4 hearts. Run out of hearts and it's Game Over; beat the boss and you win — either screen lets you hit Restart to fight again.",
+    objective: "Defeat the menacing slime boss by draining its HP to zero using sword slashes and fireball magic, while dodging its four attacks (rapid-fire bites, a limb strike, a leap-slam, and a ceiling blob barrage) and managing your 4 hearts. Beat it and you'll get a cinematic teaser for the next boss. Run out of hearts and it's Game Over — either screen lets you hit Restart to fight again.",
     controls: [
       { key: "Arrow Keys / WASD", action: "Move" },
       { key: "Space / Up / W", action: "Jump" },
       { key: "Shift / C", action: "Dash (brief invincibility)" },
       { key: "S / Down (on a platform)", action: "Drop through it" },
-      { key: "Left Click", action: "Slash attack" },
-      { key: "Right Click", action: "Magic cube (costs 50 MP, big damage)" },
-      { key: "E", action: "Magic bullet (costs 1 MP, small damage)" },
+      { key: "Left Click", action: "Sword slash" },
+      { key: "Right Click", action: "Fireball (costs 40 MP, big damage)" },
+      { key: "E", action: "Fire pellet (costs 1 MP, small damage)" },
       { key: "Touch (mobile)", action: "On-screen buttons for movement, jump, dash, slash, bullet, cube, drop-through" }
     ],
     changelog: [
+      { date: "2026-07-28", note: "Major boss & combat overhaul: reworked attacks, a full multi-stage death sequence with a cinematic teaser for the next boss, a sword and fireball-style magic, a redesigned slime-palace background, background music, and assorted sound/visual polish." },
       { date: "2026-07-27", note: "Major polish pass: sound, visuals, mobile support, and a full boss/player redesign." },
       { date: "2026-07-27", note: "Added platforms in the boss arena; boss now stays where it lands after its leap attack." },
       { date: "2026-07-27", note: "Initial release." }

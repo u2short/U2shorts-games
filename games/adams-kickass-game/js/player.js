@@ -115,11 +115,21 @@ function updatePlayer() {
     }
   } else {
     // --- Horizontal movement ---
+    // Standing in a slime puddle (left behind by Attack 4's blobs) slows
+    // movement while you're in it.
+    let moveSpeed = MOVE_SPEED;
+    for (const puddle of slimePuddles) {
+      if (isColliding(player, puddle)) {
+        moveSpeed = MOVE_SPEED * SLIME_PUDDLE_SPEED_MULTIPLIER;
+        break;
+      }
+    }
+
     if (keys["ArrowLeft"] || keys["KeyA"]) {
-      player.velocityX = -MOVE_SPEED;
+      player.velocityX = -moveSpeed;
       player.facing = -1;
     } else if (keys["ArrowRight"] || keys["KeyD"]) {
-      player.velocityX = MOVE_SPEED;
+      player.velocityX = moveSpeed;
       player.facing = 1;
     } else {
       player.velocityX = 0;
@@ -257,6 +267,82 @@ function drawPlayer() {
     ctx.arc(ex + player.facing * eyeRadius * 0.3, eyeY - eyeRadius * 0.3, eyeRadius * 0.35, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  drawPlayerSword();
+
+  // Green pulsing outline: you've been standing too close to the boss long
+  // enough that a slime rain is about to start. Marking the player (not the
+  // boss) since it's your positioning that triggered it.
+  if (typeof boss !== "undefined" && boss.proximityState === "warning") {
+    const pulse = 0.5 + Math.sin(frameCount * 0.3) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 0.5 + pulse * 0.5;
+    ctx.strokeStyle = "#22c55e";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "#22c55e";
+    ctx.shadowBlur = 15;
+    buildGumdropPath(player.x - 6, player.y - 6, player.width + 12, player.height + 12, 0, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// A actual sword shape, held near the front hand -- resting at a neutral
+// forward-down angle when idle, swinging through an up-back-to-forward arc
+// in sync with combat.js's slash timer while attacking. Mirrored (rather
+// than re-derived per facing) so the swing arc only has to be written once.
+function drawPlayerSword() {
+  const pivotX = player.x + (player.facing === 1 ? player.width * 0.82 : player.width * 0.18);
+  const pivotY = player.y + player.height * 0.42;
+
+  let angle;
+  if (slashTimer > 0) {
+    const progress = 1 - slashTimer / SLASH_DURATION; // 0 -> 1 across the swing
+    angle = 1.3 - progress * 1.9; // lowered back -> forward-up
+  } else {
+    angle = -0.3; // resting, held slightly forward-up
+  }
+
+  ctx.save();
+  ctx.translate(pivotX, pivotY);
+  if (player.facing === -1) ctx.scale(-1, 1);
+  ctx.rotate(angle);
+
+  const bladeLength = player.height * 0.85;
+  const bladeWidth = 6;
+
+  // Grip
+  ctx.fillStyle = "#78350f";
+  ctx.fillRect(-14, -4, 14, 8);
+
+  // Crossguard
+  ctx.fillStyle = "#eab308";
+  ctx.fillRect(-3, -11, 6, 22);
+
+  // Blade -- tapered to a point, with a bright gradient and a thin fuller line.
+  const bladeGradient = ctx.createLinearGradient(0, 0, bladeLength, 0);
+  bladeGradient.addColorStop(0, "#cbd5e1");
+  bladeGradient.addColorStop(1, "#f8fafc");
+  ctx.beginPath();
+  ctx.moveTo(0, -bladeWidth / 2);
+  ctx.lineTo(bladeLength * 0.82, -bladeWidth / 2);
+  ctx.lineTo(bladeLength, 0);
+  ctx.lineTo(bladeLength * 0.82, bladeWidth / 2);
+  ctx.lineTo(0, bladeWidth / 2);
+  ctx.closePath();
+  ctx.fillStyle = bladeGradient;
+  ctx.shadowColor = "#f1f5f9";
+  ctx.shadowBlur = 5;
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(71, 85, 105, 0.5)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(3, 0);
+  ctx.lineTo(bladeLength - 6, 0);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 // Reduces the player's hearts by one (ignored while invulnerable, or while

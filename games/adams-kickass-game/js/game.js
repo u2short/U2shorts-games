@@ -32,7 +32,7 @@ function draw() {
   }
 
   if (boss.state === "dead") {
-    drawEndScreen("YOU WIN", "#22c55e", "#15803d");
+    drawEndScreen("YOU WIN", "#22c55e", "#15803d", "THIS PHASE IS A WIP");
     return;
   }
 
@@ -53,7 +53,7 @@ function draw() {
   drawTouchControls();
 }
 
-function drawEndScreen(message, color, colorDim) {
+function drawEndScreen(message, color, colorDim, subtitle) {
   drawBackground();
 
   ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
@@ -67,6 +67,12 @@ function drawEndScreen(message, color, colorDim) {
   ctx.shadowBlur = 30;
   ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 40);
   ctx.restore();
+
+  if (subtitle) {
+    ctx.fillStyle = "rgba(226, 232, 240, 0.75)";
+    ctx.font = "20px sans-serif";
+    ctx.fillText(subtitle, canvas.width / 2, canvas.height / 2 + 6);
+  }
 
   const btn = getRestartButtonRect();
   const hovered = pointerX !== null && isPointInRect(pointerX, pointerY, btn);
@@ -108,13 +114,25 @@ function resetGame() {
     flashOn: false,
     hitFlashTimer: 0,
     attack3Zone: null,
+    proximityTimer: 0,
+    proximityState: "none",
+    proximityStateTimer: 0,
+    slimeRainSpawnIndex: 0,
+    slimeRainSlotCounter: { left: 0, right: 0 },
+    deathPhase: "lookup",
+    deathPhaseTimer: 0,
+    anvilY: DEATH_ANVIL_START_Y,
+    falloffOffset: 0,
   });
 
   bullets.length = 0;
   limbHazard = null;
-  explosionParticles.length = 0;
   particles.length = 0;
+  slimeRainDrops.length = 0;
+  attack4Blobs.length = 0;
+  slimePuddles.length = 0;
   sfxUiClick();
+  bgMusic.play().catch(() => {}); // resumes if the last fight ended in a win (which pauses it)
 }
 
 window.addEventListener("mousedown", (e) => {
